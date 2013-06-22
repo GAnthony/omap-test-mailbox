@@ -1,39 +1,31 @@
 Simple loopback message test for mailbox.
 
-**NOTE**  Kernel patch required due to mailbox API limitation
+**NOTE**  DT Kernel patch required.
 
+Adapted from a test program written by Kevin Hilman:
+https://github.com/khilman/omap-test-mailbox
+and updated for v3.8.12 kernel mailbox framework.
+
+Tested on DRA7XX.
 
 Kernel Patch
 ============
-On OMAP3, only one mailbox is created with settings hard-coded for
-MPU -> DSP messages.
-
-The pach 'dsp-mailbox-loopack.patch' changes the hard-coded settings
-so that the MPU is the receiver of the messages so a simple loopback
-test can be done.
-
-An API should be created to the message receiver can be configured at
-runtime.
-
+The patch '0001-OMAP2-mailbox-convert-Slave-mailboxes-to-MPU-loopbac.patch' 
+changes the USER, Tx and Rx fifo numbers of the slaves to cause
+the MPU to receive the messages destined for the slaves {ipu1,dsp1,ipu2,dsp2}
+of mailboxes 5 and 6.
 
 Usage
 =====
-Check what mailboxes are available on this platform.  For example, on OMAP3:
-
-# ls /sys/devices/platform/omap-mailbox/mbox
-dsp 
-#
-
 Load the test module using the 'name=' command-line argument
-with the name of one of the mailboxes shown.  
+with the name of one of the mailboxes listed in the DT mailbox name fields:
+"mbox-ipu1", "mbox-dsp1", "mbox-ipu2", "mbox-dsp2".
 
-Since the kernel patch above changed the 'dsp' mailbox into the
-loopback mailbox, use that one:
-
-# insmod ./mytest.ko name=dsp
+# insmod mbox_test.ko name=mbox-ipu1 count=100
+# rmmod mbox_test.ko
 
 By default, the test will send 16 test messages with an incremeting number
-as the message.  The number of messages can be changed with the 'count=' 
+as the message.  
+
+The number of messages can be changed with the 'count=' 
 command-line option at module load time.
-
-

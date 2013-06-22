@@ -1,0 +1,41 @@
+From cca55c212c3a64d85c73deb90f734eaf0c76ccac Mon Sep 17 00:00:00 2001
+From: G Anthony <a0783926@ti.com>
+Date: Fri, 21 Jun 2013 14:21:04 -0700
+Subject: [PATCH] OMAP2+: mailbox: convert Slave mailboxes to MPU loopback
+
+Set DT mailbox node USER attributes to the value (2) used to raise an
+interrupt to the MPU (normally used by slaves to interrupt MPU), and
+set the mailbox's tx fifo to the rx fifo for corresponding to each slave.
+
+Signed-off-by: G Anthony <a0783926@ti.com>
+---
+ arch/arm/boot/dts/dra7.dtsi |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/dra7.dtsi b/arch/arm/boot/dts/dra7.dtsi
+index f1fd7e3..4e89aff 100644
+--- a/arch/arm/boot/dts/dra7.dtsi
++++ b/arch/arm/boot/dts/dra7.dtsi
+@@ -312,7 +312,7 @@
+ 			ti,mbox-num-fifos = <12>;
+ 			#ti,mbox-data-cells = <4>;
+ 			ti,mbox-names = "mbox-ipu1", "mbox-dsp1";
+-                        ti,mbox-data = <6 4 0 1>, <5 1 0 0>;
++			ti,mbox-data = <4 4 0 2>, <1 1 0 2>;
+ 		};
+ 
+ 		mailbox6: mailbox@48842000 {
+@@ -323,8 +323,8 @@
+ 			ti,mbox-num-users = <4>;
+ 			ti,mbox-num-fifos = <12>;
+ 			#ti,mbox-data-cells = <4>;
+-			ti,mbox-names = "mbox-ipu2", "mbox-dsp2";
+-                        ti,mbox-data = <6 4 0 1>, <5 1 0 0>;
++			ti,mbox-names = "mbox-ipu2", "mbox-dsp2"
++			ti,mbox-data = <4 4 0 2>, <1 1 0 2>;
+ 		};
+ 
+ 		mailbox7: mailbox@48844000 {
+-- 
+1.7.9.4
+

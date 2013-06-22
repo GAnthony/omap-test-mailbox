@@ -3,32 +3,28 @@
 #include <linux/init.h>
 #include <linux/notifier.h>
 #include <linux/err.h>
+#include <linux/sched.h>
 
-#include <plat/mailbox.h>
+#include <linux/mailbox.h>
 
 MODULE_AUTHOR("Kevin Hilman");
 MODULE_LICENSE("GPL");
 
 /* load-time options */
-int debug = 0;
 int count = 16;
-char *name = "dsp";
+char *name = "mbox-ipu1";
 
-module_param(debug, int, 0);
 module_param(count, int, 0);
 module_param(name, charp, 0);
 
-static int callback(struct notifier_block *nb, unsigned long len, void *v)
+static int callback(struct notifier_block *this, unsigned long index,
+			void *data)
 {
 	int ret = 0;
-	mbox_msg_t msg = (mbox_msg_t)v;
+	struct mailbox_msg *msg = data;
+	u32 msg_data = (u32)msg->pdata;
 
-	if (len != sizeof(mbox_msg_t)) {
-		printk("%s: invalid message size: %lu\n", __func__, len);
-		ret = -EINVAL;
-	}
-
-	printk("%s: msg=%u\n", __func__, msg);
+	pr_info("mbox msg: 0x%x\n", msg_data);
 
 	return ret;
 }
@@ -37,35 +33,41 @@ struct notifier_block nb = {
 	.notifier_call = callback,
 };
 
-static struct omap_mbox *mbox;
+static struct mailbox *mbox;
 
-static void __exit mbox_test_cleanup(void) 
+static void __exit mbox_test_cleanup(void)
 {
+	pr_info("%s: mbox_test_cleanup entered\n", __func__);
 	if (mbox)
-		omap_mbox_put(mbox, &nb);
+		mailbox_put(mbox, &nb);
 }
 
-static int __init mbox_test_init(void) 
+static int __init mbox_test_init(void)
 {
 	int i, r, ret = 0;
+	struct mailbox_msg msg;
 
-	mbox = omap_mbox_get(name, &nb);
+	pr_info("%s: mbox_test_init entered\n", __func__);
+	mbox = mailbox_get(name, &nb);
 	if (IS_ERR(mbox)) {
-		printk("%s: omap_mbox_get() failed: 0x%p\n", __func__, mbox);
+		pr_err("%s: mailbox_get() failed: 0x%p\n", __func__, mbox);
 		mbox = NULL;
 		ret = -EINVAL;
 		goto out;
 	}
 
 	for (i = 0; i < count; i++) {
-		mbox_msg_t msg = i;
 
-		r = omap_mbox_msg_send(mbox, msg);
+		MAILBOX_FILL_MSG(msg, 0, i, 0);
+		r = mailbox_msg_send(mbox, &msg);
 		if (r) {
-			printk("%s: omap_mbox_msg_send() failed: %d\n",
+			pr_err("%s: mailbox_msg_send() failed: %d\n",
 			       __func__, r);
-			ret = r;
-			break;
+			/* Let callback empty fifo a bit, then continue: */
+			set_current_state(TASK_INTERRUPTIBLE);
+			schedule_timeout(HZ / 10);  /* 1/10 second */
+			i--;
+			continue;
 		}
 	}
 
